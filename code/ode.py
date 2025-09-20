@@ -1,8 +1,4 @@
 import numpy as np
-import sys
-
-from paths import ML_Path
-sys.path.append(ML_Path)
 
 from utilities import Utilities # various utilities for simple i/o tasks
 
@@ -10,7 +6,7 @@ import inspect # useful for checking function call signatures
 
 #############################################
 class ODEInt(Utilities):
-    """ Finite-differencing schema for 2nd-order ODE integration for problems
+    """ Finite-differencing schema for 2nd-order ODE integration for generic problems
         of the type u'' = f(u,t,theta_f) + g(v,theta_v) where v = u'. 
     """
     #########################################
@@ -30,7 +26,7 @@ class ODEInt(Utilities):
                                'f_euler':self.f_euler,
                                'b_euler':None,
                                'crank_nicholson':None,
-                               'euler_cromer':None,
+                               'euler_cromer':self.euler_cromer,
                                'stoermer_verlet':None,
                                'stagg_euler_cromer':None}
         
@@ -53,6 +49,9 @@ class ODEInt(Utilities):
             self.print_this("... solving u''(t) = f(u,t) + g(v) with v = u'",self.logfile)
         
         self.check_init()
+        if self.verbose:
+            self.print_this("... setup complete",self.logfile)
+            self.print_this("---------------",self.logfile)
     #########################################
 
     
@@ -167,8 +166,7 @@ class ODEInt(Utilities):
         # calculate v = u'
         v = self.calc_uprime(u,dt,v0)
             
-        return u,v,t
-        
+        return u,v,t        
     #########################################
 
 
@@ -188,11 +186,34 @@ class ODEInt(Utilities):
 
         # recurse
         for n in range(Nt):
-            u[n+1] = u[n] + dt*v[n]
             v[n+1] = v[n] + dt*(self.f_ut(u[n],t[n],theta_f) + self.g_v(v[n],theta_v))
+            u[n+1] = u[n] + dt*v[n] # cf. self.euler_cromer
 
-        return u,v,t
-        
+        return u,v,t        
     #########################################
 
+
+    #########################################
+    def euler_cromer(self,T,dt,u0,v0,theta_f=None,theta_v=None):
+        """ Euler-Cromer integration. """
+        
+        # check that all needed parameters are provided
+        self.check_theta(theta_f,theta_v)
+
+        # initialize arrays
+        Nt,u,v,t,dt2 = self.initialize_arrays(T,dt)
+
+        # set initial conditions
+        u[0] = u0
+        v[0] = v0
+
+        # recurse
+        for n in range(Nt):
+            v[n+1] = v[n] + dt*(self.f_ut(u[n],t[n],theta_f) + self.g_v(v[n],theta_v))
+            u[n+1] = u[n] + dt*v[n+1] # cf. self.f_euler
+
+        return u,v,t        
+    #########################################
+    
+    
 #############################################
