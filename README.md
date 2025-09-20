@@ -7,7 +7,7 @@
 
 ## Code organization
 * `code/ode.py`
-  - `ODEInt`: schema for generic 2nd-order ODEs of the type $\ddot u(t) = f(u,t) + g(v)$ with $v = \dot u$.
+  - `ODEInt`: schema for generic 2nd-order ODEs of the type $\ddot u(t) = f(u,t) + g(v)$ with $v = \dot u$, including Verlet, Forward Euler, Euler-Cromer and Stoermer-Verlet.
 
 * `code/examples.py`
   - Support for various choices of $f(u,t)$ and $g(v)$ for use in `ODEInt`, including simple harmonic oscillator, ...
@@ -16,7 +16,7 @@
   - **UNDER CONSTRUCTION**
 
 ## Example notebooks
-* $\texttt{examples/ODE\\_Examples.ipynb}$: **UNDER CONSTRUCTION**
+* $\texttt{examples/ODE\\_Examples.ipynb}$: Examples showing basic usage and convergence tests (**under construction**) on SHO.
 
 ## Requirements
 * Python3.8 or higher with NumPy, Matplotlib and Jupyter (for example usage).
