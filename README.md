@@ -13,10 +13,10 @@
   - Support for various choices of $f(u,t)$ and $g(v)$ for use in `ODEInt`, including simple harmonic oscillator, ...
     
 * `code/tests.py`
-  - **UNDER CONSTRUCTION**
+  - `Test_ODEInt`: error and error convergence rate calculations for class ODEInt
 
 ## Example notebooks
-* $\texttt{examples/ODE\\_Examples.ipynb}$: Examples showing basic usage and convergence tests (**under construction**) on SHO.
+* $\texttt{examples/ODE\\_Examples.ipynb}$: Examples showing basic usage and convergence tests on SHO.
 
 ## Requirements
 * Python3.8 or higher with NumPy, Matplotlib and Jupyter (for example usage).
