@@ -1,7 +1,5 @@
 import numpy as np
-
 from utilities import Utilities # various utilities for simple i/o tasks
-
 import inspect # useful for checking function call signatures
 
 #############################################
@@ -13,7 +11,7 @@ class ODEInt(Utilities):
     def __init__(self,setup):
         """ Expect setup to be dictionary with keys being a subset of:
             -- 'scheme': string; integration scheme. Expect one of 
-                         ['verlet','f-euler','b-euler','crank-nicholson','euler-cromer','stoermer-verlet','stagg-euler-cromer']
+                         ['verlet','f-euler','euler-cromer','stoermer-verlet']
             -- 'f_ut': callable or None; function object with call signature f_ut(u,t,theta_f) where u,t are scalars 
                        and theta_f is array-like, containing parameters controlling f_ut (default None)
             -- 'g_v' : callable or None; function object with call signature g_v(g,theta_v) where v is a scalar 
@@ -24,11 +22,8 @@ class ODEInt(Utilities):
         # integration scheme: 
         self.allowed_schema = {'verlet':self.verlet,
                                'f_euler':self.f_euler,
-                               'b_euler':None,
-                               'crank_nicholson':None,
                                'euler_cromer':self.euler_cromer,
-                               'stoermer_verlet':None,
-                               'stagg_euler_cromer':None}
+                               'stoermer_verlet':self.stoermer_verlet}
         
         self.scheme = setup.get('scheme','verlet')
         self.solver = self.allowed_schema[self.scheme]
@@ -36,8 +31,8 @@ class ODEInt(Utilities):
         self.f_ut = setup.get('f_ut',None) # function with call signature f_ut(u,t,theta_f)
         self.g_v = setup.get('g_v',None)   # function with call signature g_v(v,theta_v)
 
-        self.f_is_None = (self.f_ut is None)
-        self.g_is_None = (self.g_v is None)
+        self.f_is_None = (self.f_ut is None) # useful for handling a
+        self.g_is_None = (self.g_v is None)  # few special use cases
 
         self.verbose = setup.get('verbose',True)
         self.logfile = setup.get('logfile',None)
@@ -128,15 +123,14 @@ class ODEInt(Utilities):
 
     #########################################
     def initialize_arrays(self,T,dt):
-        """ Helper function to initialize u,t arrays. """
+        """ Helper function to initialize u,v,t arrays. """
         
         Nt = int(round(T/dt)) # number of steps
         u = np.zeros(Nt+1,dtype=float) # solution array
         v = np.zeros(Nt+1,dtype=float) # velocity array
         t = np.linspace(0.0,Nt*dt,Nt+1) # time array
-        dt2 = dt**2
         
-        return Nt,u,v,t,dt2
+        return Nt,u,v,t
     #########################################
 
     
@@ -153,7 +147,8 @@ class ODEInt(Utilities):
         self.check_theta(theta_f,theta_v)
 
         # initialize arrays
-        Nt,u,v,t,dt2 = self.initialize_arrays(T,dt)
+        Nt,u,v,t = self.initialize_arrays(T,dt)
+        dt2 = dt**2
 
         # set initial conditions
         u[0] = u0
@@ -172,13 +167,13 @@ class ODEInt(Utilities):
 
     #########################################
     def f_euler(self,T,dt,u0,v0,theta_f=None,theta_v=None):
-        """ Forward-Euler integration. """
+        """ Forward-Euler scheme. """
         
         # check that all needed parameters are provided
         self.check_theta(theta_f,theta_v)
 
         # initialize arrays
-        Nt,u,v,t,dt2 = self.initialize_arrays(T,dt)
+        Nt,u,v,t = self.initialize_arrays(T,dt)
 
         # set initial conditions
         u[0] = u0
@@ -195,13 +190,13 @@ class ODEInt(Utilities):
 
     #########################################
     def euler_cromer(self,T,dt,u0,v0,theta_f=None,theta_v=None):
-        """ Euler-Cromer integration. """
+        """ Euler-Cromer scheme. """
         
         # check that all needed parameters are provided
         self.check_theta(theta_f,theta_v)
 
         # initialize arrays
-        Nt,u,v,t,dt2 = self.initialize_arrays(T,dt)
+        Nt,u,v,t = self.initialize_arrays(T,dt)
 
         # set initial conditions
         u[0] = u0
@@ -212,6 +207,41 @@ class ODEInt(Utilities):
             v[n+1] = v[n] + dt*(self.f_ut(u[n],t[n],theta_f) + self.g_v(v[n],theta_v))
             u[n+1] = u[n] + dt*v[n+1] # cf. self.f_euler
 
+        return u,v,t        
+    #########################################
+
+
+    #########################################
+    def stoermer_verlet(self,T,dt,u0,v0,theta_f=None,theta_v=None):
+        """ Stoermer-Verlet scheme. """
+
+        if not self.g_is_None:
+            raise Exception("Generic Stoermer-Verlet doesn't work with non-trivial g_v!")
+
+        # check that all needed parameters are provided
+        self.check_theta(theta_f,theta_v)
+
+        # initialize arrays
+        Nt,u,v,t = self.initialize_arrays(T,dt)
+
+        # internal v-indexing on staggered grid: v[n] = v(t_{n-1/2})
+        
+        # set initial conditions
+        u[0] = u0
+        v[0] = v0 - 0.5*dt*self.f_ut(u0,0.0,theta_f)
+
+        # recurse
+        for n in range(Nt):
+            v[n+1] = v[n] + dt*self.f_ut(u[n],t[n],theta_f)
+            u[n+1] = u[n] + dt*v[n+1] 
+
+        # v on integer grid
+        # ... first Nt steps (including t=0)
+        v = 0.5*(v[1:] + v[:-1])
+        # ... last step
+        v_last = (u[-1]-u[-2])/dt
+        v = np.concatenate((v,[v_last]))
+            
         return u,v,t        
     #########################################
     
