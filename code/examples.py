@@ -11,6 +11,6 @@ class SimpleHarmonicOscillator(object):
     def v_exact(self,t,u0,v0,theta_f,theta_v=None):
         return -u0*theta_f[0]*np.sin(theta_f[0]*t) + v0*np.cos(theta_f[0]*t)
 
-    def energy(self,u,v,theta_f,theta_v=None):
+    def energy(self,t,u,v,theta_f,theta_v=None):
         E = 0.5*(v**2 + (theta_f[0]*u)**2)
         return E
