@@ -2,9 +2,22 @@
 ## Pedagodical introduction to basic numerical methods
 
 * Finite-differencing schema
-  - ODEs : Verlet integration, Forward/Backward Euler, Crank-Nicholson, Euler-Cromer, Stoermer-Verlet, staggered Euler-Cromer
+  - ODEs : Verlet integration, Forward/Backward Euler, Crank-Nicholson, Euler-Cromer, Stoermer-Verlet
   - PDEs : *under construction*
- 
+
+## Code organization
+* `code/ode.py`
+  - `ODEInt`: schema for generic 2nd-order ODEs of the type $\ddot u(t) = f(u,t) + g(v)$ with $v = \dot u$.
+
+* `code/examples.py`
+  - Support for various choices of $f(u,t)$ and $g(v)$ for use in `ODEInt`, including simple harmonic oscillator, ...
+    
+* `code/tests.py`
+  - **UNDER CONSTRUCTION**
+
+## Example notebooks
+* $\texttt{examples/ODE\\_Examples.ipynb}$: **UNDER CONSTRUCTION**
+
 ## Requirements
 * Python3.8 or higher with NumPy, Matplotlib and Jupyter (for example usage).
 
