@@ -244,6 +244,123 @@ class ODEInt(Utilities):
             
         return u,v,t        
     #########################################
+#############################################
+
+
+#############################################
+class ODEInt_Implicit_SHO(Utilities):
+    """ Finite-differencing implicit schema for integration of simple harmonic oscillator
+        u'' = -omega^2 u.
+    """
+    #########################################
+    def __init__(self,setup):
+        """ Expect setup to be dictionary with keys being a subset of:
+            -- 'scheme': string; integration scheme. Expect one of 
+                         ['b-euler','crank-nicholson']
+            -- 'verbose': boolean; control verbosity of output (default True) 
+            -- 'logfile': string or None; file to store verbose output, or None for output to stdio (default None)
+        """
+        # integration scheme: 
+        self.allowed_schema = {'b_euler':self.b_euler,
+                               'crank_nicholson':self.crank_nicholson}
+        
+        self.scheme = setup.get('scheme','crank_nicholson')
+        self.solver = self.allowed_schema[self.scheme]
+
+        self.verbose = setup.get('verbose',True)
+        self.logfile = setup.get('logfile',None)
+
+        if self.verbose:
+            self.print_this("---------------",self.logfile)
+            self.print_this("ODE integration",self.logfile)
+            self.print_this("---------------",self.logfile)
+            self.print_this("... solving u''(t) = -omega^2 u",self.logfile)
+        
+        self.check_init()
+        if self.verbose:
+            self.print_this("... setup complete",self.logfile)
+            self.print_this("---------------",self.logfile)
+    #########################################
+
     
+    #########################################
+    def check_init(self):
+        """ Check validity of inputs. """
+        if self.scheme not in self.allowed_schema.keys():
+            raise Exception("scheme '"+self.scheme+"' not recognised in ODEInt. Expecting one of ["+','.join([s for s in list(self.allowed_schema.keys())])+']')
+
+        if self.scheme is None:
+            raise NotImplementedError("scheme '"+self.scheme+"' is not implemented yet!")
+
+        if self.verbose:
+            self.print_this("... using scheme: "+self.scheme,self.logfile)
+
+        return
+    #########################################
+
+
+    #########################################
+    def initialize_arrays(self,T,dt):
+        """ Helper function to initialize u,v,t arrays. """
+        
+        Nt = int(round(T/dt)) # number of steps
+        u = np.zeros(Nt+1,dtype=float) # solution array
+        v = np.zeros(Nt+1,dtype=float) # velocity array
+        t = np.linspace(0.0,Nt*dt,Nt+1) # time array
+        
+        return Nt,u,v,t
+    #########################################
+
     
+    #########################################
+    # Solver methods
+    #########################################
+    def b_euler(self,T,dt,u0,v0,theta_f=[1.0]):
+        """ Backward-Euler scheme for simple harmonic oscillator. """
+
+        omega = theta_f[0]
+        om2 = omega**2
+        om2dt = om2*dt
+        one_plus_om2dt2 = 1 + om2dt*dt
+        
+        # initialize arrays
+        Nt,u,v,t = self.initialize_arrays(T,dt)
+
+        # set initial conditions
+        u[0] = u0
+        v[0] = v0
+
+        # recurse
+        for n in range(Nt):
+            v[n+1] = (v[n] - om2dt*u[n])/one_plus_om2dt2
+            u[n+1] = u[n] + dt*v[n+1] 
+
+        return u,v,t        
+    #########################################
+
+
+    #########################################
+    def crank_nicholson(self,T,dt,u0,v0,theta_f=[1.0]):
+        """ Crank-Nicholson scheme for simple harmonic oscillator. """
+
+        omega = theta_f[0]
+        om2 = omega**2
+        om2dt = om2*dt
+        om_fac_plus = 1 + om2dt*dt/4
+        om_fac_minus = 1 - om2dt*dt/4
+        
+        # initialize arrays
+        Nt,u,v,t = self.initialize_arrays(T,dt)
+
+        # set initial conditions
+        u[0] = u0
+        v[0] = v0
+
+        # recurse
+        for n in range(Nt):
+            u[n+1] = (om_fac_minus*u[n] + dt*v[n])/om_fac_plus
+            v[n+1] = (om_fac_minus*v[n] - om2dt*u[n])/om_fac_plus
+
+        return u,v,t        
+    #########################################
 #############################################
